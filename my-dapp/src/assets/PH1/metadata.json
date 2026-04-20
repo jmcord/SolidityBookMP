@@ -1,0 +1,10 @@
+{
+  "name": "La Princesa Hilandera: El Monasterio de Heladas Cascadas",
+  "description": "Libro tokenizado",
+  "image": "ipfs://bafy.../cover.png",
+  "animation_url": "ipfs://bafy.../libro.pdf",
+  "attributes": [
+    { "trait_type": "Autor", "value": "JM Lamb" },
+    { "trait_type": "Precio", "value": "100 BMT" }
+  ]
+}

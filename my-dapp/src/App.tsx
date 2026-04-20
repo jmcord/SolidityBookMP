@@ -39,6 +39,11 @@ function App() {
   const [ethToSpend, setEthToSpend] = useState('0.1')
   const [status, setStatus] = useState('')
 
+  const [bookTitle, setBookTitle] = useState('')
+  const [bookAuthor, setBookAuthor] = useState('')
+  const [bookPrice, setBookPrice] = useState('100')
+  const [bookMetadata, setBookMetadata] = useState('ipfs://mi-libro')
+
   const { data: isRegistered, refetch: refetchRegistered } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
     abi: MARKETPLACE_ABI,
@@ -79,6 +84,18 @@ function App() {
     query: { enabled: Boolean(address) },
   })
 
+  const { data: ownerAddress } = useReadContract({
+    address: MARKETPLACE_ADDRESS as `0x${string}`,
+    abi: MARKETPLACE_ABI,
+    functionName: 'owner',
+    query: { enabled: true },
+  })
+
+  const isOwner =
+    address && ownerAddress
+      ? address.toLowerCase() === (ownerAddress as string).toLowerCase()
+      : false
+
   const price = useMemo(() => {
     if (!book) return 0n
     const b = book as BookData
@@ -110,10 +127,8 @@ function App() {
         functionName: 'register',
         args: [username.trim()],
       })
-
       setStatus('Esperando confirmación del registro...')
       await waitAndRefresh(hash)
-
       setStatus('✅ Usuario registrado correctamente')
     } catch (error: any) {
       console.error(error)
@@ -130,14 +145,35 @@ function App() {
         functionName: 'buyTokens',
         value: parseEther(ethToSpend || '0'),
       })
-
       setStatus('Esperando confirmación de compra de tokens...')
       await waitAndRefresh(hash)
-
       setStatus('✅ Tokens comprados correctamente')
     } catch (error: any) {
       console.error(error)
       setStatus(`Error al comprar tokens: ${error?.shortMessage || error?.message || 'desconocido'}`)
+    }
+  }
+
+  const handleCreateBook = async () => {
+    try {
+      setStatus('Creando libro...')
+      const hash = await writeContractAsync({
+        address: MARKETPLACE_ADDRESS as `0x${string}`,
+        abi: MARKETPLACE_ABI,
+        functionName: 'createBook',
+        args: [
+          bookTitle.trim(),
+          bookAuthor.trim(),
+          parseEther(bookPrice || '0'),
+          bookMetadata.trim(),
+        ],
+      })
+      setStatus('Esperando confirmación de creación del libro...')
+      await waitAndRefresh(hash)
+      setStatus('✅ Libro creado correctamente')
+    } catch (error: any) {
+      console.error(error)
+      setStatus(`Error al crear libro: ${error?.shortMessage || error?.message || 'desconocido'}`)
     }
   }
 
@@ -150,10 +186,8 @@ function App() {
         functionName: 'approve',
         args: [MARKETPLACE_ADDRESS as `0x${string}`, price],
       })
-
       setStatus('Esperando confirmación del approve...')
       await waitAndRefresh(hash)
-
       setStatus('✅ Approve realizado correctamente')
     } catch (error: any) {
       console.error(error)
@@ -170,10 +204,8 @@ function App() {
         functionName: 'buyBook',
         args: [BOOK_ID],
       })
-
       setStatus('Esperando confirmación de compra del libro...')
       await waitAndRefresh(hash)
-
       setStatus('✅ Libro comprado correctamente')
     } catch (error: any) {
       console.error(error)
@@ -234,6 +266,51 @@ function App() {
 
           <hr style={{ margin: '24px 0' }} />
 
+          <h2>Crear libro</h2>
+          {isOwner ? (
+            <div style={{ display: 'grid', gap: 8 }}>
+              <input
+                value={bookTitle}
+                onChange={(e) => setBookTitle(e.target.value)}
+                placeholder="Título"
+                style={{ padding: 8 }}
+              />
+              <input
+                value={bookAuthor}
+                onChange={(e) => setBookAuthor(e.target.value)}
+                placeholder="Autor"
+                style={{ padding: 8 }}
+              />
+              <input
+                value={bookPrice}
+                onChange={(e) => setBookPrice(e.target.value)}
+                placeholder="Precio en BMT"
+                style={{ padding: 8 }}
+              />
+              <input
+                value={bookMetadata}
+                onChange={(e) => setBookMetadata(e.target.value)}
+                placeholder="Metadata URI"
+                style={{ padding: 8 }}
+              />
+              <button
+                onClick={handleCreateBook}
+                disabled={
+                  !bookTitle.trim() ||
+                  !bookAuthor.trim() ||
+                  !bookPrice.trim() ||
+                  !bookMetadata.trim()
+                }
+              >
+                Crear libro
+              </button>
+            </div>
+          ) : (
+            <p>Solo el owner puede crear libros.</p>
+          )}
+
+          <hr style={{ margin: '24px 0' }} />
+
           <h2>Libro</h2>
           {bookData ? (
             <div style={{ border: '1px solid #ccc', padding: 16, borderRadius: 8 }}>
@@ -249,7 +326,10 @@ function App() {
                 <button onClick={handleApprove} disabled={!price}>
                   Approve
                 </button>
-                <button onClick={handleBuyBook} disabled={!bookData.active || Boolean(ownsBook)}>
+                <button
+                  onClick={handleBuyBook}
+                  disabled={!bookData.active || Boolean(ownsBook) || !isRegistered}
+                >
                   Comprar libro
                 </button>
                 <button onClick={() => void refreshAll()}>
