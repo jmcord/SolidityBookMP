@@ -5,11 +5,18 @@ pragma solidity ^0.8.24;
     Requiere OpenZeppelin:
     npm install @openzeppelin/contracts
 
-    Contratos usados:
-    - ERC20
-    - ERC721URIStorage
-    - Ownable
-    - ReentrancyGuard
+    Flujo recomendado en Remix:
+    1. Deploy BookToken
+    2. Deploy BookNFT
+    3. Deploy BookMarketplace pasando:
+       - tokenAddress = dirección de BookToken
+       - nftAddress   = dirección de BookNFT
+    4. Transferir ownership de BookToken y BookNFT al marketplace
+    5. Registrar usuario
+    6. Crear libro
+    7. BuyTokens
+    8. Approve en BookToken al marketplace
+    9. BuyBook
 */
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -18,7 +25,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract BookToken is ERC20, Ownable {
-    constructor() ERC20("Book Marketplace Token", "BMT") Ownable(msg.sender) {}
+    constructor(address initialOwner)
+        ERC20("Book Marketplace Token", "BMT")
+        Ownable(initialOwner)
+    {}
 
     function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
@@ -28,7 +38,10 @@ contract BookToken is ERC20, Ownable {
 contract BookNFT is ERC721URIStorage, Ownable {
     uint256 public nextTokenId;
 
-    constructor() ERC721("Book Ownership NFT", "BOOK") Ownable(msg.sender) {}
+    constructor(address initialOwner)
+        ERC721("Book Ownership NFT", "BOOK")
+        Ownable(initialOwner)
+    {}
 
     function mintBookNFT(address to, string memory tokenURI_) external onlyOwner returns (uint256) {
         nextTokenId++;
@@ -43,7 +56,8 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
     BookToken public immutable paymentToken;
     BookNFT public immutable bookNFT;
 
-    uint256 public constant TOKENS_PER_ETH = 1000; // 1 ETH = 1000 BMT
+    uint256 public constant TOKENS_PER_ETH = 1000;
+    uint256 public constant TOKEN_UNIT = 1e18;
 
     struct User {
         bool registered;
@@ -56,8 +70,8 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
         uint256 id;
         string title;
         string author;
-        uint256 priceInTokens;   // ejemplo: 50 * 10**18
-        string metadataURI;      // URI del NFT / metadata
+        uint256 priceInTokens;
+        string metadataURI;
         bool active;
         uint256 totalSales;
     }
@@ -83,9 +97,12 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
     event EthWithdrawn(address indexed owner, uint256 amount);
     event TokenRevenueWithdrawn(address indexed owner, uint256 amount);
 
-    constructor() Ownable(msg.sender) {
-        paymentToken = new BookToken();
-        bookNFT = new BookNFT();
+    constructor(address tokenAddress, address nftAddress) Ownable(msg.sender) {
+        require(tokenAddress != address(0), "Token address invalida");
+        require(nftAddress != address(0), "NFT address invalida");
+
+        paymentToken = BookToken(tokenAddress); //ERC20 FT
+        bookNFT = BookNFT(nftAddress); //NFT ERC721
     }
 
     modifier onlyRegistered() {
@@ -154,7 +171,6 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
         emit BookUpdated(bookId, newPriceInTokens, active);
     }
 
-
     function buyTokens() external payable onlyRegistered nonReentrant {
         require(msg.value > 0, "Debes enviar ETH");
 
@@ -173,20 +189,23 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
 
         uint256 price = book.priceInTokens;
 
-        require(paymentToken.balanceOf(msg.sender)>=price, "Saldo insuficiente de tokens");
+        require(paymentToken.balanceOf(msg.sender) >= price, "Saldo insuficiente de tokens");
+        require(
+            paymentToken.allowance(msg.sender, address(this)) >= price,
+            "Allowance insuficiente"
+        );
 
         bool ok = paymentToken.transferFrom(msg.sender, address(this), price);
         require(ok, "Transferencia fallida de tokens");
 
         accumulatedTokenRevenue += price;
-        ownsBook[msg.sender][bookId]=true;
-        users[msg.sender].purchasedBooks +=1;
-        book.totalSales +=1;
+        ownsBook[msg.sender][bookId] = true;
+        users[msg.sender].purchasedBooks += 1;
+        book.totalSales += 1;
 
-        uint256 nftTokenId = bookNFT.mintBookNFT(msg.sender,book.metadataURI);
+        uint256 nftTokenId = bookNFT.mintBookNFT(msg.sender, book.metadataURI);
 
         emit BookPurchased(msg.sender, bookId, price, nftTokenId);
-
     }
 
     function withdrawETH(address payable to, uint256 amount) external onlyOwner nonReentrant {
@@ -198,7 +217,6 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
 
         emit EthWithdrawn(to, amount);
     }
-
 
     function withdrawTokenRevenue(address to, uint256 amount) external onlyOwner nonReentrant {
         require(to != address(0), "Direccion invalida");
@@ -213,13 +231,8 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
     }
 
     function getBook(uint256 bookId) external view returns (Book memory) {
-        require(books[bookId].id !=0, "Libro no existe");
+        require(books[bookId].id != 0, "Libro no existe");
         return books[bookId];
-
-    }
-
-    function isRegistered(address user) external view returns (bool) {
-        return users[user].registered;
     }
 
     function getUser(address user) external view returns (User memory) {
@@ -227,10 +240,37 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
         return users[user];
     }
 
+    function isRegistered(address user) external view returns (bool) {
+        return users[user].registered;
+    }
+
     function hasUserBook(address user, uint256 bookId) external view returns (bool) {
         return ownsBook[user][bookId];
     }
 
-    receive() external payable {}
+    function getPaymentTokenAddress() external view returns (address) {
+        return address(paymentToken);
+    }
 
+    function getBookNFTAddress() external view returns (address) {
+        return address(bookNFT);
+    }
+
+    function getTokenBalance(address user) external view returns (uint256) {
+        return paymentToken.balanceOf(user);
+    }
+
+    function getMyTokenBalance() external view returns (uint256) {
+        return paymentToken.balanceOf(msg.sender);
+    }
+
+    function getTokenAllowance(address owner_, address spender) external view returns (uint256) {
+        return paymentToken.allowance(owner_, spender);
+    }
+
+    function getMyAllowanceToMarketplace() external view returns (uint256) {
+        return paymentToken.allowance(msg.sender, address(this));
+    }
+
+    receive() external payable {}
 }
