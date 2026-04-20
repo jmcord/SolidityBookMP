@@ -5,117 +5,43 @@ import {
   useDisconnect,
   useReadContract,
   useWriteContract,
-  useWaitForTransactionReceipt,
+  usePublicClient,
 } from 'wagmi'
 import { injected } from 'wagmi/connectors'
 import { formatEther, parseEther } from 'viem'
-
-const MARKETPLACE_ADDRESS = '0xTU_MARKETPLACE'
-const TOKEN_ADDRESS = '0xTU_BOOKTOKEN'
-
-const marketplaceAbi = [
-  {
-    type: 'function',
-    name: 'register',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'username', type: 'string' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'buyTokens',
-    stateMutability: 'payable',
-    inputs: [],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'buyBook',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'bookId', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'getMyTokenBalance',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'getMyAllowanceToMarketplace',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'getBook',
-    stateMutability: 'view',
-    inputs: [{ name: 'bookId', type: 'uint256' }],
-    outputs: [
-      {
-        type: 'tuple',
-        components: [
-          { name: 'id', type: 'uint256' },
-          { name: 'title', type: 'string' },
-          { name: 'author', type: 'string' },
-          { name: 'priceInTokens', type: 'uint256' },
-          { name: 'metadataURI', type: 'string' },
-          { name: 'active', type: 'bool' },
-          { name: 'totalSales', type: 'uint256' },
-        ],
-      },
-    ],
-  },
-  {
-    type: 'function',
-    name: 'hasUserBook',
-    stateMutability: 'view',
-    inputs: [
-      { name: 'user', type: 'address' },
-      { name: 'bookId', type: 'uint256' },
-    ],
-    outputs: [{ name: '', type: 'bool' }],
-  },
-  {
-    type: 'function',
-    name: 'isRegistered',
-    stateMutability: 'view',
-    inputs: [{ name: 'user', type: 'address' }],
-    outputs: [{ name: '', type: 'bool' }],
-  },
-] as const
-
-const tokenAbi = [
-  {
-    type: 'function',
-    name: 'approve',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'spender', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    outputs: [{ name: '', type: 'bool' }],
-  },
-] as const
+import {
+  MARKETPLACE_ADDRESS,
+  MARKETPLACE_ABI,
+  TOKEN_ADDRESS,
+  TOKEN_ABI,
+} from './contracts'
 
 const BOOK_ID = 1n
+
+type BookData = {
+  id: bigint
+  title: string
+  author: string
+  priceInTokens: bigint
+  metadataURI: string
+  active: boolean
+  totalSales: bigint
+}
 
 function App() {
   const { address, isConnected } = useAccount()
   const { connect } = useConnect()
   const { disconnect } = useDisconnect()
   const { writeContractAsync } = useWriteContract()
+  const publicClient = usePublicClient()
 
   const [username, setUsername] = useState('')
   const [ethToSpend, setEthToSpend] = useState('0.1')
-  const [status, setStatus] = useState<string>('')
+  const [status, setStatus] = useState('')
 
   const { data: isRegistered, refetch: refetchRegistered } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
-    abi: marketplaceAbi,
+    abi: MARKETPLACE_ABI,
     functionName: 'isRegistered',
     args: address ? [address] : undefined,
     query: { enabled: Boolean(address) },
@@ -123,21 +49,23 @@ function App() {
 
   const { data: balance, refetch: refetchBalance } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
-    abi: marketplaceAbi,
-    functionName: 'getMyTokenBalance',
-    query: { enabled: isConnected },
+    abi: MARKETPLACE_ABI,
+    functionName: 'getTokenBalance',
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address) },
   })
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
-    abi: marketplaceAbi,
-    functionName: 'getMyAllowanceToMarketplace',
-    query: { enabled: isConnected },
+    abi: MARKETPLACE_ABI,
+    functionName: 'getTokenAllowance',
+    args: address ? [address, MARKETPLACE_ADDRESS as `0x${string}`] : undefined,
+    query: { enabled: Boolean(address) },
   })
 
   const { data: book, refetch: refetchBook } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
-    abi: marketplaceAbi,
+    abi: MARKETPLACE_ABI,
     functionName: 'getBook',
     args: [BOOK_ID],
     query: { enabled: true },
@@ -145,7 +73,7 @@ function App() {
 
   const { data: ownsBook, refetch: refetchOwnsBook } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
-    abi: marketplaceAbi,
+    abi: MARKETPLACE_ABI,
     functionName: 'hasUserBook',
     args: address ? [address, BOOK_ID] : undefined,
     query: { enabled: Boolean(address) },
@@ -153,15 +81,7 @@ function App() {
 
   const price = useMemo(() => {
     if (!book) return 0n
-    const b = book as {
-      id: bigint
-      title: string
-      author: string
-      priceInTokens: bigint
-      metadataURI: string
-      active: boolean
-      totalSales: bigint
-    }
+    const b = book as BookData
     return b.priceInTokens
   }, [book])
 
@@ -175,20 +95,29 @@ function App() {
     ])
   }
 
+  const waitAndRefresh = async (hash: `0x${string}`) => {
+    if (!publicClient) throw new Error('Public client no disponible')
+    await publicClient.waitForTransactionReceipt({ hash })
+    await refreshAll()
+  }
+
   const handleRegister = async () => {
     try {
       setStatus('Registrando usuario...')
       const hash = await writeContractAsync({
         address: MARKETPLACE_ADDRESS as `0x${string}`,
-        abi: marketplaceAbi,
+        abi: MARKETPLACE_ABI,
         functionName: 'register',
-        args: [username],
+        args: [username.trim()],
       })
-      setStatus(`Registro enviado: ${hash}`)
-      setTimeout(() => void refreshAll(), 2000)
-    } catch (error) {
+
+      setStatus('Esperando confirmación del registro...')
+      await waitAndRefresh(hash)
+
+      setStatus('✅ Usuario registrado correctamente')
+    } catch (error: any) {
       console.error(error)
-      setStatus('Error al registrar')
+      setStatus(`Error al registrar: ${error?.shortMessage || error?.message || 'desconocido'}`)
     }
   }
 
@@ -197,15 +126,18 @@ function App() {
       setStatus('Comprando tokens...')
       const hash = await writeContractAsync({
         address: MARKETPLACE_ADDRESS as `0x${string}`,
-        abi: marketplaceAbi,
+        abi: MARKETPLACE_ABI,
         functionName: 'buyTokens',
         value: parseEther(ethToSpend || '0'),
       })
-      setStatus(`Compra de tokens enviada: ${hash}`)
-      setTimeout(() => void refreshAll(), 2000)
-    } catch (error) {
+
+      setStatus('Esperando confirmación de compra de tokens...')
+      await waitAndRefresh(hash)
+
+      setStatus('✅ Tokens comprados correctamente')
+    } catch (error: any) {
       console.error(error)
-      setStatus('Error al comprar tokens')
+      setStatus(`Error al comprar tokens: ${error?.shortMessage || error?.message || 'desconocido'}`)
     }
   }
 
@@ -214,15 +146,18 @@ function App() {
       setStatus('Haciendo approve...')
       const hash = await writeContractAsync({
         address: TOKEN_ADDRESS as `0x${string}`,
-        abi: tokenAbi,
+        abi: TOKEN_ABI,
         functionName: 'approve',
         args: [MARKETPLACE_ADDRESS as `0x${string}`, price],
       })
-      setStatus(`Approve enviado: ${hash}`)
-      setTimeout(() => void refreshAll(), 2000)
-    } catch (error) {
+
+      setStatus('Esperando confirmación del approve...')
+      await waitAndRefresh(hash)
+
+      setStatus('✅ Approve realizado correctamente')
+    } catch (error: any) {
       console.error(error)
-      setStatus('Error en approve')
+      setStatus(`Error en approve: ${error?.shortMessage || error?.message || 'desconocido'}`)
     }
   }
 
@@ -231,15 +166,18 @@ function App() {
       setStatus('Comprando libro...')
       const hash = await writeContractAsync({
         address: MARKETPLACE_ADDRESS as `0x${string}`,
-        abi: marketplaceAbi,
+        abi: MARKETPLACE_ABI,
         functionName: 'buyBook',
         args: [BOOK_ID],
       })
-      setStatus(`Compra enviada: ${hash}`)
-      setTimeout(() => void refreshAll(), 2000)
-    } catch (error) {
+
+      setStatus('Esperando confirmación de compra del libro...')
+      await waitAndRefresh(hash)
+
+      setStatus('✅ Libro comprado correctamente')
+    } catch (error: any) {
       console.error(error)
-      setStatus('Error al comprar libro')
+      setStatus(`Error al comprar libro: ${error?.shortMessage || error?.message || 'desconocido'}`)
     }
   }
 
@@ -247,17 +185,7 @@ function App() {
   const formattedAllowance = allowance ? formatEther(allowance as bigint) : '0'
   const formattedPrice = price ? formatEther(price) : '0'
 
-  const bookData = book as
-    | {
-        id: bigint
-        title: string
-        author: string
-        priceInTokens: bigint
-        metadataURI: string
-        active: boolean
-        totalSales: bigint
-      }
-    | undefined
+  const bookData = book as BookData | undefined
 
   return (
     <div style={{ padding: 24, maxWidth: 760, margin: '0 auto', fontFamily: 'sans-serif' }}>
