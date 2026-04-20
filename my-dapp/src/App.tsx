@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   useAccount,
   useConnect,
@@ -16,8 +16,6 @@ import {
   TOKEN_ABI,
 } from './contracts'
 
-const BOOK_ID = 1n
-
 type BookData = {
   id: bigint
   title: string
@@ -26,6 +24,18 @@ type BookData = {
   metadataURI: string
   active: boolean
   totalSales: bigint
+}
+
+type NftMetadata = {
+  name?: string
+  description?: string
+  image?: string
+  animation_url?: string
+  external_url?: string
+  attributes?: Array<{
+    trait_type?: string
+    value?: string
+  }>
 }
 
 function App() {
@@ -42,7 +52,21 @@ function App() {
   const [bookTitle, setBookTitle] = useState('')
   const [bookAuthor, setBookAuthor] = useState('')
   const [bookPrice, setBookPrice] = useState('100')
-  const [bookMetadata, setBookMetadata] = useState('ipfs://mi-libro')
+  const [bookMetadata, setBookMetadata] = useState('ipfs://')
+
+  const [selectedBookId, setSelectedBookId] = useState('1')
+  const currentBookId = BigInt(selectedBookId || '1')
+
+  const [nftMetadata, setNftMetadata] = useState<NftMetadata | null>(null)
+  const [metadataError, setMetadataError] = useState('')
+
+  const ipfsToHttp = (uri: string) => {
+    if (!uri) return ''
+    if (uri.startsWith('ipfs://')) {
+      return `https://ipfs.io/ipfs/${uri.replace('ipfs://', '')}`
+    }
+    return uri
+  }
 
   const { data: isRegistered, refetch: refetchRegistered } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
@@ -72,7 +96,7 @@ function App() {
     address: MARKETPLACE_ADDRESS as `0x${string}`,
     abi: MARKETPLACE_ABI,
     functionName: 'getBook',
-    args: [BOOK_ID],
+    args: [currentBookId],
     query: { enabled: true },
   })
 
@@ -80,7 +104,7 @@ function App() {
     address: MARKETPLACE_ADDRESS as `0x${string}`,
     abi: MARKETPLACE_ABI,
     functionName: 'hasUserBook',
-    args: address ? [address, BOOK_ID] : undefined,
+    args: address ? [address, currentBookId] : undefined,
     query: { enabled: Boolean(address) },
   })
 
@@ -117,6 +141,36 @@ function App() {
     await publicClient.waitForTransactionReceipt({ hash })
     await refreshAll()
   }
+
+  const loadMetadata = async (metadataUri: string) => {
+    try {
+      setMetadataError('')
+      setNftMetadata(null)
+
+      if (!metadataUri) return
+
+      const response = await fetch(ipfsToHttp(metadataUri))
+      if (!response.ok) {
+        throw new Error(`No se pudo cargar metadata: ${response.status}`)
+      }
+
+      const json = (await response.json()) as NftMetadata
+      setNftMetadata(json)
+    } catch (error: any) {
+      console.error(error)
+      setMetadataError(error?.message || 'Error cargando metadata')
+    }
+  }
+
+  useEffect(() => {
+    const bookData = book as BookData | undefined
+    if (bookData?.metadataURI) {
+      void loadMetadata(bookData.metadataURI)
+    } else {
+      setNftMetadata(null)
+      setMetadataError('')
+    }
+  }, [book])
 
   const handleRegister = async () => {
     try {
@@ -202,7 +256,7 @@ function App() {
         address: MARKETPLACE_ADDRESS as `0x${string}`,
         abi: MARKETPLACE_ABI,
         functionName: 'buyBook',
-        args: [BOOK_ID],
+        args: [currentBookId],
       })
       setStatus('Esperando confirmación de compra del libro...')
       await waitAndRefresh(hash)
@@ -218,9 +272,11 @@ function App() {
   const formattedPrice = price ? formatEther(price) : '0'
 
   const bookData = book as BookData | undefined
+  const imageUrl = nftMetadata?.image ? ipfsToHttp(nftMetadata.image) : ''
+  const pdfUrl = nftMetadata?.animation_url ? ipfsToHttp(nftMetadata.animation_url) : ''
 
   return (
-    <div style={{ padding: 24, maxWidth: 760, margin: '0 auto', fontFamily: 'sans-serif' }}>
+    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto', fontFamily: 'sans-serif' }}>
       <h1>📚 Book Marketplace</h1>
 
       {!isConnected ? (
@@ -238,7 +294,7 @@ function App() {
           <p><strong>Registrado:</strong> {isRegistered ? 'Sí' : 'No'}</p>
           <p><strong>Balance BMT:</strong> {formattedBalance}</p>
           <p><strong>Allowance al marketplace:</strong> {formattedAllowance}</p>
-          <p><strong>¿Ya tienes el libro?</strong> {ownsBook ? 'Sí' : 'No'}</p>
+          <p><strong>¿Ya tienes el libro seleccionado?</strong> {ownsBook ? 'Sí' : 'No'}</p>
 
           <hr style={{ margin: '24px 0' }} />
 
@@ -290,7 +346,7 @@ function App() {
               <input
                 value={bookMetadata}
                 onChange={(e) => setBookMetadata(e.target.value)}
-                placeholder="Metadata URI"
+                placeholder="Metadata URI (ipfs://...)"
                 style={{ padding: 8 }}
               />
               <button
@@ -311,6 +367,19 @@ function App() {
 
           <hr style={{ margin: '24px 0' }} />
 
+          <h2>Seleccionar libro</h2>
+          <input
+            value={selectedBookId}
+            onChange={(e) => setSelectedBookId(e.target.value)}
+            placeholder="ID del libro"
+            style={{ padding: 8, marginRight: 8 }}
+          />
+          <button onClick={() => void refreshAll()}>
+            Cargar libro
+          </button>
+
+          <hr style={{ margin: '24px 0' }} />
+
           <h2>Libro</h2>
           {bookData ? (
             <div style={{ border: '1px solid #ccc', padding: 16, borderRadius: 8 }}>
@@ -320,7 +389,7 @@ function App() {
               <p><strong>Precio:</strong> {formattedPrice} BMT</p>
               <p><strong>Activo:</strong> {bookData.active ? 'Sí' : 'No'}</p>
               <p><strong>Ventas:</strong> {bookData.totalSales.toString()}</p>
-              <p><strong>Metadata:</strong> {bookData.metadataURI}</p>
+              <p><strong>Metadata URI:</strong> {bookData.metadataURI}</p>
 
               <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
                 <button onClick={handleApprove} disabled={!price}>
@@ -336,9 +405,77 @@ function App() {
                   Refrescar datos
                 </button>
               </div>
+
+              <hr style={{ margin: '24px 0' }} />
+
+              <h3>Metadata NFT</h3>
+              {metadataError && <p>Error metadata: {metadataError}</p>}
+
+              {nftMetadata && (
+                <>
+                  <p><strong>Nombre:</strong> {nftMetadata.name || '-'}</p>
+                  <p><strong>Descripción:</strong> {nftMetadata.description || '-'}</p>
+
+                  {Array.isArray(nftMetadata.attributes) && nftMetadata.attributes.length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                      <strong>Atributos:</strong>
+                      <ul>
+                        {nftMetadata.attributes.map((attr, index) => (
+                          <li key={index}>
+                            {attr.trait_type}: {String(attr.value ?? '')}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {imageUrl && (
+                    <div style={{ marginBottom: 16 }}>
+                      <strong>Portada</strong>
+                      <div>
+                        <img
+                          src={imageUrl}
+                          alt={nftMetadata.name || 'Portada'}
+                          style={{ maxWidth: 280, borderRadius: 8, marginTop: 8 }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 16 }}>
+                    <strong>Contenido del libro</strong>
+
+                    {Boolean(ownsBook) ? (
+                      pdfUrl ? (
+                        <>
+                          <p style={{ marginTop: 8 }}>
+                            <a href={pdfUrl} target="_blank" rel="noreferrer">
+                              Abrir PDF en pestaña nueva
+                            </a>
+                          </p>
+
+                          <iframe
+                            src={pdfUrl}
+                            title="Libro PDF"
+                            width="100%"
+                            height="700"
+                            style={{ border: '1px solid #ccc', borderRadius: 8, marginTop: 8 }}
+                          />
+                        </>
+                      ) : (
+                        <p style={{ marginTop: 8 }}>No hay PDF configurado en animation_url.</p>
+                      )
+                    ) : (
+                      <p style={{ marginTop: 8 }}>
+                        Compra este libro para desbloquear el PDF completo.
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           ) : (
-            <p>No se pudo cargar el libro 1.</p>
+            <p>No se pudo cargar el libro {selectedBookId}.</p>
           )}
 
           {status && (
