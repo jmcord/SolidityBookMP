@@ -1,15 +1,16 @@
+import 'dotenv/config'
 import fs from 'fs'
 import { createLitClient } from '@lit-protocol/lit-client'
 import { nagaDev } from '@lit-protocol/networks'
-import { createAuthManager } from '@lit-protocol/auth'
+import { createAuthManager, storagePlugins } from '@lit-protocol/auth'
 import { privateKeyToAccount } from 'viem/accounts'
 
-// 1. Pon aquí la private key de la wallet que SÍ puede descifrar.
-// Debe ser la misma wallet autorizada en tu cifrado de prueba.
-// Mejor leerla desde variable de entorno luego.
-const PRIVATE_KEY = '0xTU_PRIVATE_KEY_AQUI'
+const PRIVATE_KEY = process.env.PRIVATE_KEY
 
-// 2. Archivo cifrado descargado desde Pinata/IPFS
+if (!PRIVATE_KEY) {
+  throw new Error('Falta PRIVATE_KEY en .env')
+}
+
 const ENCRYPTED_FILE = './book.encrypted.json'
 
 async function run() {
@@ -17,7 +18,13 @@ async function run() {
     network: nagaDev,
   })
 
-  const authManager = createAuthManager()
+  const authManager = createAuthManager({
+    storage: storagePlugins.localStorageNode({
+      appName: 'lit-reader',
+      networkName: 'naga-dev',
+      storagePath: './.lit-cache',
+    }),
+  })
 
   const account = privateKeyToAccount(PRIVATE_KEY)
 
@@ -41,10 +48,6 @@ async function run() {
     fs.readFileSync(ENCRYPTED_FILE, 'utf-8')
   )
 
-  // OJO:
-  // Para que esto funcione, usas las MISMAS condiciones con las que cifraste.
-  // En tu prueba, la condición era requireWalletOwnership(address).on('ethereum').
-  // Como ya vienen embebidas en el objeto cifrado, probamos a pasarlo tal cual como `data`.
   const decrypted = await litClient.decrypt({
     data: encryptedJson,
     authContext,
