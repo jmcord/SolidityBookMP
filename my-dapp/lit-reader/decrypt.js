@@ -4,6 +4,7 @@ import { createLitClient } from '@lit-protocol/lit-client'
 import { nagaDev } from '@lit-protocol/networks'
 import { createAuthManager, storagePlugins } from '@lit-protocol/auth'
 import { privateKeyToAccount } from 'viem/accounts'
+import { decryptToUint8Array } from '@lit-protocol/encryption'
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 
@@ -28,41 +29,36 @@ async function run() {
 
   const account = privateKeyToAccount(PRIVATE_KEY)
 
-  const authContext = await authManager.createEoaAuthContext({
-    config: {
-      account,
-    },
-    authConfig: {
-      domain: 'localhost',
-      statement: 'Decrypt book',
-      expiration: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
-      resources: [
-        ['access-control-condition-decryption', '*'],
-        ['lit-action-execution', '*'],
-      ],
-    },
+  // 1. Crear authSig (firma SIWE)
+  const authSig = await authManager.createEoaAuthSig({
+    account,
+    statement: 'Decrypt book',
+    expiration: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
     litClient,
   })
 
-  const encryptedJson = JSON.parse(
-    fs.readFileSync(ENCRYPTED_FILE, 'utf-8')
+  const raw = fs.readFileSync(ENCRYPTED_FILE, 'utf-8')
+  const parsedJsonData = JSON.parse(raw)
+
+  console.log('🔓 Descifrando con decryptToUint8Array...')
+
+  // 2. Descifrar usando authSig
+  const decryptedBytes = await decryptToUint8Array(
+    {
+      accessControlConditions: parsedJsonData.accessControlConditions,
+      evmContractConditions: parsedJsonData.evmContractConditions,
+      solRpcConditions: parsedJsonData.solRpcConditions,
+      unifiedAccessControlConditions:
+        parsedJsonData.unifiedAccessControlConditions,
+      ciphertext: parsedJsonData.ciphertext,
+      dataToEncryptHash: parsedJsonData.dataToEncryptHash,
+      chain: parsedJsonData.chain || 'sepolia',
+      authSig,
+    },
+    litClient
   )
 
-  const decrypted = await litClient.decrypt({
-    data: encryptedJson,
-    authContext,
-    chain: 'ethereum',
-  })
-
-  const pdfBytes =
-    decrypted instanceof Uint8Array
-      ? decrypted
-      : decrypted?.decryptedData instanceof Uint8Array
-      ? decrypted.decryptedData
-      : new Uint8Array(decrypted)
-
-  fs.writeFileSync('./book.decrypted.pdf', pdfBytes)
-
+  fs.writeFileSync('./book.decrypted.pdf', Buffer.from(decryptedBytes))
   console.log('✅ PDF descifrado en book.decrypted.pdf')
 }
 

@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@lit-protocol/access-control-conditions": "^8.0.2",
+    "@lit-protocol/encryption": "^7.4.0",
     "@lit-protocol/lit-client": "^8.3.1",
     "@lit-protocol/networks": "^8.4.1",
     "viem": "^2.38.3"

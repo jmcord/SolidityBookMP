@@ -13,8 +13,11 @@
   "dependencies": {
     "@lit-protocol/access-control-conditions": "^8.0.2",
     "@lit-protocol/auth": "^8.2.3",
+    "@lit-protocol/constants": "^9.0.1",
+    "@lit-protocol/encryption": "^7.4.0",
     "@lit-protocol/lit-client": "^8.3.1",
     "@lit-protocol/networks": "^8.4.1",
+    "@lit-protocol/types": "^8.0.4",
     "dotenv": "^17.4.2",
     "viem": "^2.38.3"
   }
