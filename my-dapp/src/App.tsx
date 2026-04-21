@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import EncryptBook from './EncryptBook'
+import DecryptBook from './DecryptBook'
 import {
   useAccount,
   useConnect,
@@ -31,7 +32,8 @@ type NftMetadata = {
   name?: string
   description?: string
   image?: string
-  animation_url?: string
+  encrypted_file?: string
+  mime_type?: string
   external_url?: string
   attributes?: Array<{
     trait_type?: string
@@ -274,7 +276,9 @@ function App() {
 
   const bookData = book as BookData | undefined
   const imageUrl = nftMetadata?.image ? ipfsToHttp(nftMetadata.image) : ''
-  const pdfUrl = nftMetadata?.animation_url ? ipfsToHttp(nftMetadata.animation_url) : ''
+  const encryptedFileUrl = nftMetadata?.encrypted_file
+    ? ipfsToHttp(nftMetadata.encrypted_file)
+    : ''
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: '0 auto', fontFamily: 'sans-serif' }}>
@@ -443,35 +447,10 @@ function App() {
                     </div>
                   )}
 
-                  <div style={{ marginTop: 16 }}>
-                    <strong>Contenido del libro</strong>
-
-                    {Boolean(ownsBook) ? (
-                      pdfUrl ? (
-                        <>
-                          <p style={{ marginTop: 8 }}>
-                            <a href={pdfUrl} target="_blank" rel="noreferrer">
-                              Abrir PDF en pestaña nueva
-                            </a>
-                          </p>
-
-                          <iframe
-                            src={pdfUrl}
-                            title="Libro PDF"
-                            width="100%"
-                            height="700"
-                            style={{ border: '1px solid #ccc', borderRadius: 8, marginTop: 8 }}
-                          />
-                        </>
-                      ) : (
-                        <p style={{ marginTop: 8 }}>No hay PDF configurado en animation_url.</p>
-                      )
-                    ) : (
-                      <p style={{ marginTop: 8 }}>
-                        Compra este libro para desbloquear el PDF completo.
-                      </p>
-                    )}
-                  </div>
+                  <DecryptBook
+                    encryptedFileUrl={encryptedFileUrl}
+                    ownsBook={Boolean(ownsBook)}
+                  />
                 </>
               )}
             </div>
@@ -486,7 +465,6 @@ function App() {
             </>
           )}
 
-          <hr style={{ margin: '24px 0' }} />
           {isOwner && (
             <>
               <hr style={{ margin: '24px 0' }} />
