@@ -6,9 +6,8 @@ import { nagaDev } from '@lit-protocol/networks'
 const BOOK_ID = '8'
 const CONTRACT = '0x2b31812EbcDa863dE6635A1Ad83F581212ED3b18'
 
-const conditions = [
+const evmContractConditions = [
   {
-    conditionType: 'evmContract',
     contractAddress: CONTRACT,
     chain: 'sepolia',
     functionName: 'hasUserBook',
@@ -21,7 +20,9 @@ const conditions = [
         { name: 'user', type: 'address' },
         { name: 'bookId', type: 'uint256' }
       ],
-      outputs: [{ type: 'bool' }]
+      outputs: [
+        { name: '', type: 'bool' }
+      ]
     },
     returnValueTest: {
       key: '',
@@ -36,7 +37,6 @@ async function run() {
 
   const pdf = fs.readFileSync('./book.pdf')
 
-  // AES
   const key = crypto.randomBytes(32)
   const iv = crypto.randomBytes(16)
 
@@ -45,15 +45,17 @@ async function run() {
 
   fs.writeFileSync('./book.encrypted.bin', encrypted)
 
-  // payload clave
   const payload = JSON.stringify({
     key: key.toString('base64'),
     iv: iv.toString('base64')
   })
 
+  console.log('USANDO evmContractConditions ✅')
+  console.log(Object.keys({ dataToEncrypt: true, evmContractConditions, chain: 'sepolia' }))
+
   const encryptedKey = await litClient.encrypt({
     dataToEncrypt: new TextEncoder().encode(payload),
-    unifiedAccessControlConditions: conditions,
+    evmContractConditions,
     chain: 'sepolia'
   })
 
@@ -62,4 +64,6 @@ async function run() {
   console.log('✅ Encrypt OK')
 }
 
-run()
+run().catch((err) => {
+  console.error('❌ Error en encrypt.js:', err)
+})

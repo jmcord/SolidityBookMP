@@ -12,6 +12,33 @@ if (!PRIVATE_KEY) {
   throw new Error('Falta PRIVATE_KEY en .env')
 }
 
+const BOOK_ID = '8'
+const CONTRACT = '0x2b31812EbcDa863dE6635A1Ad83F581212ED3b18'
+
+const evmContractConditions = [
+  {
+    contractAddress: CONTRACT,
+    chain: 'sepolia',
+    functionName: 'hasUserBook',
+    functionParams: [':userAddress', BOOK_ID],
+    functionAbi: {
+      name: 'hasUserBook',
+      type: 'function',
+      stateMutability: 'view',
+      inputs: [
+        { name: 'user', type: 'address' },
+        { name: 'bookId', type: 'uint256' }
+      ],
+      outputs: [{ name: '', type: 'bool' }]
+    },
+    returnValueTest: {
+      key: '',
+      comparator: '=',
+      value: 'true'
+    }
+  }
+]
+
 async function run() {
   const litClient = await createLitClient({ network: nagaDev })
 
@@ -36,16 +63,23 @@ async function run() {
     litClient
   })
 
-  const keyJson = JSON.parse(fs.readFileSync('./key.encrypted.json'))
+  const keyJson = JSON.parse(fs.readFileSync('./key.encrypted.json', 'utf-8'))
 
   const decrypted = await litClient.decrypt({
-    data: keyJson,
-    unifiedAccessControlConditions: keyJson.unifiedAccessControlConditions,
-    chain: 'sepolia',
-    authContext
-  })
+  data: keyJson,
+  evmContractConditions,
+  chain: 'sepolia',
+  authContext
+})
 
-  const decoded = JSON.parse(new TextDecoder().decode(decrypted))
+  const keyBytes =
+    decrypted instanceof Uint8Array
+      ? decrypted
+      : decrypted?.decryptedData instanceof Uint8Array
+      ? decrypted.decryptedData
+      : new Uint8Array(decrypted)
+
+  const decoded = JSON.parse(new TextDecoder().decode(keyBytes))
 
   const encryptedPdf = fs.readFileSync('./book.encrypted.bin')
 
@@ -62,4 +96,6 @@ async function run() {
   console.log('✅ Decrypt OK')
 }
 
-run()
+run().catch((err) => {
+  console.error('❌ Error en decrypt.js:', err)
+})
