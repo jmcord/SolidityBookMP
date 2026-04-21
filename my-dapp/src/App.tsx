@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import EncryptBook from './EncryptBook'
 import {
   useAccount,
   useConnect,
@@ -163,9 +164,9 @@ function App() {
   }
 
   useEffect(() => {
-    const bookData = book as BookData | undefined
-    if (bookData?.metadataURI) {
-      void loadMetadata(bookData.metadataURI)
+    const currentBook = book as BookData | undefined
+    if (currentBook?.metadataURI) {
+      void loadMetadata(currentBook.metadataURI)
     } else {
       setNftMetadata(null)
       setMetadataError('')
@@ -482,6 +483,14 @@ function App() {
             <>
               <hr style={{ margin: '24px 0' }} />
               <p><strong>Estado:</strong> {status}</p>
+            </>
+          )}
+
+          <hr style={{ margin: '24px 0' }} />
+          {isOwner && (
+            <>
+              <hr style={{ margin: '24px 0' }} />
+              <EncryptBook />
             </>
           )}
         </>
