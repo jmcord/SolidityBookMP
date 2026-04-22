@@ -65,12 +65,12 @@ function App() {
   const [metadataError, setMetadataError] = useState('')
 
   const ipfsToHttp = (uri: string) => {
-    if (!uri) return ''
-    if (uri.startsWith('ipfs://')) {
-      return `https://ipfs.io/ipfs/${uri.replace('ipfs://', '')}`
-    }
-    return uri
+  if (!uri) return ''
+  if (uri.startsWith('ipfs://')) {
+    return `https://gateway.pinata.cloud/ipfs/${uri.replace('ipfs://', '')}`
   }
+  return uri
+}
 
   const { data: isRegistered, refetch: refetchRegistered } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
@@ -190,7 +190,9 @@ function App() {
       setStatus('✅ Usuario registrado correctamente')
     } catch (error: any) {
       console.error(error)
-      setStatus(`Error al registrar: ${error?.shortMessage || error?.message || 'desconocido'}`)
+      setStatus(
+        `Error al registrar: ${error?.shortMessage || error?.message || 'desconocido'}`
+      )
     }
   }
 
@@ -208,7 +210,9 @@ function App() {
       setStatus('✅ Tokens comprados correctamente')
     } catch (error: any) {
       console.error(error)
-      setStatus(`Error al comprar tokens: ${error?.shortMessage || error?.message || 'desconocido'}`)
+      setStatus(
+        `Error al comprar tokens: ${error?.shortMessage || error?.message || 'desconocido'}`
+      )
     }
   }
 
@@ -231,7 +235,9 @@ function App() {
       setStatus('✅ Libro creado correctamente')
     } catch (error: any) {
       console.error(error)
-      setStatus(`Error al crear libro: ${error?.shortMessage || error?.message || 'desconocido'}`)
+      setStatus(
+        `Error al crear libro: ${error?.shortMessage || error?.message || 'desconocido'}`
+      )
     }
   }
 
@@ -267,7 +273,9 @@ function App() {
       setStatus('✅ Libro comprado correctamente')
     } catch (error: any) {
       console.error(error)
-      setStatus(`Error al comprar libro: ${error?.shortMessage || error?.message || 'desconocido'}`)
+      setStatus(
+        `Error al comprar libro: ${error?.shortMessage || error?.message || 'desconocido'}`
+      )
     }
   }
 
@@ -285,7 +293,14 @@ function App() {
     : ''
 
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto', fontFamily: 'sans-serif' }}>
+    <div
+      style={{
+        padding: 24,
+        maxWidth: 900,
+        margin: '0 auto',
+        fontFamily: 'sans-serif',
+      }}
+    >
       <h1>📚 Book Marketplace</h1>
 
       {!isConnected ? (
@@ -294,16 +309,26 @@ function App() {
         </button>
       ) : (
         <>
-          <p><strong>Wallet:</strong> {address}</p>
+          <p>
+            <strong>Wallet:</strong> {address}
+          </p>
           <button onClick={() => disconnect()}>Desconectar</button>
 
           <hr style={{ margin: '24px 0' }} />
 
           <h2>Estado</h2>
-          <p><strong>Registrado:</strong> {isRegistered ? 'Sí' : 'No'}</p>
-          <p><strong>Balance BMT:</strong> {formattedBalance}</p>
-          <p><strong>Allowance al marketplace:</strong> {formattedAllowance}</p>
-          <p><strong>¿Ya tienes el libro seleccionado?</strong> {ownsBook ? 'Sí' : 'No'}</p>
+          <p>
+            <strong>Registrado:</strong> {isRegistered ? 'Sí' : 'No'}
+          </p>
+          <p>
+            <strong>Balance BMT:</strong> {formattedBalance}
+          </p>
+          <p>
+            <strong>Allowance al marketplace:</strong> {formattedAllowance}
+          </p>
+          <p>
+            <strong>¿Ya tienes el libro seleccionado?</strong> {ownsBook ? 'Sí' : 'No'}
+          </p>
 
           <hr style={{ margin: '24px 0' }} />
 
@@ -314,7 +339,10 @@ function App() {
             placeholder="Tu username"
             style={{ padding: 8, marginRight: 8 }}
           />
-          <button onClick={handleRegister} disabled={!username.trim() || Boolean(isRegistered)}>
+          <button
+            onClick={handleRegister}
+            disabled={!username.trim() || Boolean(isRegistered)}
+          >
             Registrarme
           </button>
 
@@ -383,22 +411,34 @@ function App() {
             placeholder="ID del libro"
             style={{ padding: 8, marginRight: 8 }}
           />
-          <button onClick={() => void refreshAll()}>
-            Cargar libro
-          </button>
+          <button onClick={() => void refreshAll()}>Cargar libro</button>
 
           <hr style={{ margin: '24px 0' }} />
 
           <h2>Libro</h2>
           {bookData ? (
             <div style={{ border: '1px solid #ccc', padding: 16, borderRadius: 8 }}>
-              <p><strong>ID:</strong> {bookData.id.toString()}</p>
-              <p><strong>Título:</strong> {bookData.title}</p>
-              <p><strong>Autor:</strong> {bookData.author}</p>
-              <p><strong>Precio:</strong> {formattedPrice} BMT</p>
-              <p><strong>Activo:</strong> {bookData.active ? 'Sí' : 'No'}</p>
-              <p><strong>Ventas:</strong> {bookData.totalSales.toString()}</p>
-              <p><strong>Metadata URI:</strong> {bookData.metadataURI}</p>
+              <p>
+                <strong>ID:</strong> {bookData.id.toString()}
+              </p>
+              <p>
+                <strong>Título:</strong> {bookData.title}
+              </p>
+              <p>
+                <strong>Autor:</strong> {bookData.author}
+              </p>
+              <p>
+                <strong>Precio:</strong> {formattedPrice} BMT
+              </p>
+              <p>
+                <strong>Activo:</strong> {bookData.active ? 'Sí' : 'No'}
+              </p>
+              <p>
+                <strong>Ventas:</strong> {bookData.totalSales.toString()}
+              </p>
+              <p>
+                <strong>Metadata URI:</strong> {bookData.metadataURI}
+              </p>
 
               <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
                 <button onClick={handleApprove} disabled={!price}>
@@ -410,9 +450,7 @@ function App() {
                 >
                   Comprar libro
                 </button>
-                <button onClick={() => void refreshAll()}>
-                  Refrescar datos
-                </button>
+                <button onClick={() => void refreshAll()}>Refrescar datos</button>
               </div>
 
               <hr style={{ margin: '24px 0' }} />
@@ -422,23 +460,32 @@ function App() {
 
               {nftMetadata && (
                 <>
-                  <p><strong>Nombre:</strong> {nftMetadata.name || '-'}</p>
-                  <p><strong>Descripción:</strong> {nftMetadata.description || '-'}</p>
-                  <p><strong>Encrypted file:</strong> {nftMetadata.encrypted_file || '-'}</p>
-                  <p><strong>Encrypted key:</strong> {nftMetadata.encrypted_key || '-'}</p>
+                  <p>
+                    <strong>Nombre:</strong> {nftMetadata.name || '-'}
+                  </p>
+                  <p>
+                    <strong>Descripción:</strong> {nftMetadata.description || '-'}
+                  </p>
+                  <p>
+                    <strong>Encrypted file:</strong> {nftMetadata.encrypted_file || '-'}
+                  </p>
+                  <p>
+                    <strong>Encrypted key:</strong> {nftMetadata.encrypted_key || '-'}
+                  </p>
 
-                  {Array.isArray(nftMetadata.attributes) && nftMetadata.attributes.length > 0 && (
-                    <div style={{ marginBottom: 16 }}>
-                      <strong>Atributos:</strong>
-                      <ul>
-                        {nftMetadata.attributes.map((attr, index) => (
-                          <li key={index}>
-                            {attr.trait_type}: {String(attr.value ?? '')}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {Array.isArray(nftMetadata.attributes) &&
+                    nftMetadata.attributes.length > 0 && (
+                      <div style={{ marginBottom: 16 }}>
+                        <strong>Atributos:</strong>
+                        <ul>
+                          {nftMetadata.attributes.map((attr, index) => (
+                            <li key={index}>
+                              {attr.trait_type}: {String(attr.value ?? '')}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                   {imageUrl && (
                     <div style={{ marginBottom: 16 }}>
@@ -469,7 +516,9 @@ function App() {
           {status && (
             <>
               <hr style={{ margin: '24px 0' }} />
-              <p><strong>Estado:</strong> {status}</p>
+              <p>
+                <strong>Estado:</strong> {status}
+              </p>
             </>
           )}
 

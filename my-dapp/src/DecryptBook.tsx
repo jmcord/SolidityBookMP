@@ -3,6 +3,7 @@ import { useAccount } from 'wagmi'
 import { createLitClient } from '@lit-protocol/lit-client'
 import { nagaDev } from '@lit-protocol/networks'
 import { createAuthManager, storagePlugins } from '@lit-protocol/auth'
+import { MARKETPLACE_ADDRESS } from './contracts'
 
 type Props = {
   encryptedFileUrl: string
@@ -72,7 +73,11 @@ export default function DecryptBook({
 
       const encryptedPdf = await fileRes.arrayBuffer()
       const encryptedKeyJson = await keyRes.json()
-
+      console.log('FILE URL', encryptedFileUrl)
+      console.log('KEY URL', encryptedKeyUrl)
+      console.log('BOOK ID', bookId)
+      console.log('ownsBook', ownsBook)
+      console.log('encryptedKeyJson', encryptedKeyJson)
       setStatus('Conectando con Lit...')
 
       const litClient = await createLitClient({
@@ -80,12 +85,12 @@ export default function DecryptBook({
       })
 
       const authManager = createAuthManager({
-  storage: storagePlugins.localStorage({
-    appName: 'book-marketplace',
-    networkName: 'naga-dev',
-    localStorage: window.localStorage,
-  }),
-})
+        storage: storagePlugins.localStorage({
+          appName: 'book-marketplace',
+          networkName: 'naga-dev',
+          localStorage: window.localStorage,
+        }),
+      })
 
       const provider = (window as any).ethereum
       if (!provider) {
@@ -107,7 +112,7 @@ export default function DecryptBook({
         config: {
           account: {
             address: selectedAddress,
-            type: 'json-rpc',
+            //type: 'json-rpc',
             signMessage: async ({ message }: { message: string }) => {
               const signature = await provider.request({
                 method: 'personal_sign',
@@ -135,7 +140,7 @@ export default function DecryptBook({
         data: encryptedKeyJson,
         evmContractConditions: [
           {
-            contractAddress: '0x2b31812EbcDa863dE6635A1Ad83F581212ED3b18',
+            contractAddress: MARKETPLACE_ADDRESS as `0x${string}`,
             chain: 'sepolia',
             functionName: 'hasUserBook',
             functionParams: [':userAddress', bookId],
@@ -160,12 +165,19 @@ export default function DecryptBook({
         authContext,
       })
 
-      const keyBytes =
-        decryptedKeyResult instanceof Uint8Array
-          ? decryptedKeyResult
-          : decryptedKeyResult?.decryptedData instanceof Uint8Array
-          ? decryptedKeyResult.decryptedData
-          : new Uint8Array(decryptedKeyResult)
+      let keyBytes: Uint8Array
+
+      if (decryptedKeyResult instanceof Uint8Array) {
+        keyBytes = decryptedKeyResult
+      } else if (
+        decryptedKeyResult &&
+        'decryptedData' in decryptedKeyResult &&
+        decryptedKeyResult.decryptedData instanceof Uint8Array
+      ) {
+        keyBytes = decryptedKeyResult.decryptedData
+      } else {
+        throw new Error('Lit no devolvió decryptedData como Uint8Array')
+      }
 
       const decoded = JSON.parse(new TextDecoder().decode(keyBytes))
 
