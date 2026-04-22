@@ -4,6 +4,11 @@ import { createLitClient } from '@lit-protocol/lit-client'
 import { nagaDev } from '@lit-protocol/networks'
 import { createAuthManager, storagePlugins } from '@lit-protocol/auth'
 import { MARKETPLACE_ADDRESS } from './contracts'
+import { createWalletClient, custom, getAddress } from 'viem'
+import { Buffer } from 'buffer'
+
+// FIX: Buffer para navegador
+window.Buffer = Buffer
 
 type Props = {
   encryptedFileUrl: string
@@ -63,26 +68,15 @@ export default function DecryptBook({
         fetch(encryptedKeyUrl),
       ])
 
-      if (!fileRes.ok) {
-        throw new Error(`Error descargando encrypted_file: ${fileRes.status}`)
-      }
-
-      if (!keyRes.ok) {
-        throw new Error(`Error descargando encrypted_key: ${keyRes.status}`)
-      }
+      if (!fileRes.ok) throw new Error(`Error descargando encrypted_file: ${fileRes.status}`)
+      if (!keyRes.ok) throw new Error(`Error descargando encrypted_key: ${keyRes.status}`)
 
       const encryptedPdf = await fileRes.arrayBuffer()
       const encryptedKeyJson = await keyRes.json()
-      console.log('FILE URL', encryptedFileUrl)
-      console.log('KEY URL', encryptedKeyUrl)
-      console.log('BOOK ID', bookId)
-      console.log('ownsBook', ownsBook)
-      console.log('encryptedKeyJson', encryptedKeyJson)
+
       setStatus('Conectando con Lit...')
 
-      const litClient = await createLitClient({
-        network: nagaDev,
-      })
+      const litClient = await createLitClient({ network: nagaDev })
 
       const authManager = createAuthManager({
         storage: storagePlugins.localStorage({
@@ -92,19 +86,20 @@ export default function DecryptBook({
         }),
       })
 
-      const provider = (window as any).ethereum
-      if (!provider) {
-        throw new Error('MetaMask no está disponible')
-      }
 
-      const accounts = await provider.request({
-        method: 'eth_requestAccounts',
+      const provider = (window as any).ethereum
+      if (!provider) throw new Error('MetaMask no está disponible')
+
+      await provider.request({ method: 'eth_requestAccounts' })
+
+      const walletClient = createWalletClient({
+        transport: custom(provider),
       })
 
-      const selectedAddress = accounts?.[0]
-      if (!selectedAddress) {
-        throw new Error('No se pudo obtener la wallet seleccionada')
-      }
+      const [rawAddress] = await walletClient.getAddresses()
+      if (!rawAddress) throw new Error('No se pudo obtener la wallet seleccionada')
+
+      const selectedAddress = getAddress(rawAddress)
 
       setStatus('Firmando autenticación...')
 
@@ -112,17 +107,15 @@ export default function DecryptBook({
         config: {
           account: {
             address: selectedAddress,
-            //type: 'json-rpc',
             signMessage: async ({ message }: { message: string }) => {
-              const signature = await provider.request({
-                method: 'personal_sign',
-                params: [message, selectedAddress],
+              return await walletClient.signMessage({
+                account: selectedAddress as `0x${string}`,
+                message,
               })
-              return signature
             },
           } as any,
         },
-        authConfig: {
+              authConfig: {
           domain: window.location.host,
           statement: 'Decrypt book',
           expiration: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
@@ -165,19 +158,12 @@ export default function DecryptBook({
         authContext,
       })
 
-      let keyBytes: Uint8Array
+      let keyBytes: Uint8Array =
+        decryptedKeyResult instanceof Uint8Array
+          ? decryptedKeyResult
+          : decryptedKeyResult?.decryptedData
 
-      if (decryptedKeyResult instanceof Uint8Array) {
-        keyBytes = decryptedKeyResult
-      } else if (
-        decryptedKeyResult &&
-        'decryptedData' in decryptedKeyResult &&
-        decryptedKeyResult.decryptedData instanceof Uint8Array
-      ) {
-        keyBytes = decryptedKeyResult.decryptedData
-      } else {
-        throw new Error('Lit no devolvió decryptedData como Uint8Array')
-      }
+      if (!keyBytes) throw new Error('Lit no devolvió decryptedData como Uint8Array')
 
       const decoded = JSON.parse(new TextDecoder().decode(keyBytes))
 

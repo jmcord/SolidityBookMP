@@ -72,34 +72,40 @@ function App() {
 
   //const cidFromIpfs = (uri: string) => uri.replace('ipfs://', '')
 
-  const ipfsToHttp = (uri: string) => {
+  const IPFS_GATEWAYS = [
+  'https://crimson-quickest-pinniped-725.mypinata.cloud/ipfs/',
+  'https://dweb.link/ipfs/',
+  'https://ipfs.io/ipfs/',
+]
+
+const ipfsToHttp = (uri: string, gatewayIndex = 0) => {
   if (!uri) return ''
   if (uri.startsWith('ipfs://')) {
     const cid = uri.replace('ipfs://', '')
-    return `https://crimson-quickest-pinniped-725.mypinata.cloud/ipfs/${cid}`
+    return `${IPFS_GATEWAYS[gatewayIndex]}${cid}`
   }
   return uri
 }
 
-  const fetchJsonFromIpfs = async <T,>(uri: string): Promise<T> => {
-    let lastError: unknown = null
+const fetchJsonFromIpfs = async <T,>(uri: string): Promise<T> => {
+  let lastError: unknown = null
 
-    for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
-      const url = ipfsToHttp(uri, i)
-      try {
-        const response = await fetch(url)
-        if (!response.ok) {
-          throw new Error(`Gateway ${i + 1}: ${response.status}`)
-        }
-        return (await response.json()) as T
-      } catch (error) {
-        console.warn('IPFS gateway failed:', url, error)
-        lastError = error
+  for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
+    const url = ipfsToHttp(uri, i)
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`Gateway ${i + 1}: ${response.status}`)
       }
+      return (await response.json()) as T
+    } catch (error) {
+      console.warn('IPFS gateway failed:', url, error)
+      lastError = error
     }
-
-    throw lastError ?? new Error('No se pudo cargar desde ningún gateway IPFS')
   }
+
+  throw lastError ?? new Error('No se pudo cargar desde ningún gateway IPFS')
+}
 
   const { data: isRegistered, refetch: refetchRegistered } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
