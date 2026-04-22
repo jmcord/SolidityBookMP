@@ -12,7 +12,7 @@ if (!PRIVATE_KEY) {
   throw new Error('Falta PRIVATE_KEY en .env')
 }
 
-const BOOK_ID = '8'
+const BOOK_ID = '10'
 const CONTRACT = '0x2b31812EbcDa863dE6635A1Ad83F581212ED3b18'
 
 const evmContractConditions = [
