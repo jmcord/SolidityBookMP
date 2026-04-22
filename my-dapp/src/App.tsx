@@ -33,6 +33,7 @@ type NftMetadata = {
   description?: string
   image?: string
   encrypted_file?: string
+  encrypted_key?: string
   mime_type?: string
   external_url?: string
   attributes?: Array<{
@@ -279,6 +280,9 @@ function App() {
   const encryptedFileUrl = nftMetadata?.encrypted_file
     ? ipfsToHttp(nftMetadata.encrypted_file)
     : ''
+  const encryptedKeyUrl = nftMetadata?.encrypted_key
+    ? ipfsToHttp(nftMetadata.encrypted_key)
+    : ''
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: '0 auto', fontFamily: 'sans-serif' }}>
@@ -420,6 +424,8 @@ function App() {
                 <>
                   <p><strong>Nombre:</strong> {nftMetadata.name || '-'}</p>
                   <p><strong>Descripción:</strong> {nftMetadata.description || '-'}</p>
+                  <p><strong>Encrypted file:</strong> {nftMetadata.encrypted_file || '-'}</p>
+                  <p><strong>Encrypted key:</strong> {nftMetadata.encrypted_key || '-'}</p>
 
                   {Array.isArray(nftMetadata.attributes) && nftMetadata.attributes.length > 0 && (
                     <div style={{ marginBottom: 16 }}>
@@ -449,7 +455,9 @@ function App() {
 
                   <DecryptBook
                     encryptedFileUrl={encryptedFileUrl}
+                    encryptedKeyUrl={encryptedKeyUrl}
                     ownsBook={Boolean(ownsBook)}
+                    bookId={selectedBookId}
                   />
                 </>
               )}

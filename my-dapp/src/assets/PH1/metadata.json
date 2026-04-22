@@ -1,21 +1,8 @@
 {
-  "name": "La Princesa Hilandera: El Monasterio de Heladas Cascadas",
-  "description": "Libro cifrado con Lit",
+  "name": "Libro Web3",
+  "description": "Libro protegido con AES + Lit",
   "image": "ipfs://bafybeif7vguxm27s2idv2ohc7kr2tdkmv7tziosmhmnunnrmkt6yrumjti",
-  "encrypted_file": "ipfs://bafybeieujo6qgruj3pehzpzkvj5x4i7um7wslui57fgi2ofqwmmdijjoaa",
-  "mime_type": "application/pdf",
-  "attributes": [
-    {
-      "trait_type": "Autor",
-      "value": "JM Lamb"
-    },
-    {
-      "trait_type": "Formato",
-      "value": "PDF cifrado"
-    },
-    {
-      "trait_type": "Tipo",
-      "value": "Libro"
-    }
-  ]
+  "encrypted_file": "ipfs://bafybeifg63jvahhspwsznck6xmpidx5rjcqt7rijsnfrvszjnisjoxsle4",
+  "encrypted_key": "ipfs://bafkreihbs6jz6abnho6y7rmcynqtmv7u5x33f57enrj3rmfdwn74dl7u24",
+  "mime_type": "application/pdf"
 }
