@@ -42,6 +42,12 @@ type NftMetadata = {
   }>
 }
 
+const IPFS_GATEWAYS = [
+  'https://crimson-quickest-pinpined-725.mypinata.cloud/ipfs/',
+  'https://dweb.link/ipfs/',
+  'https://ipfs.io/ipfs/',
+]
+
 function App() {
   const { address, isConnected } = useAccount()
   const { connect } = useConnect()
@@ -64,13 +70,36 @@ function App() {
   const [nftMetadata, setNftMetadata] = useState<NftMetadata | null>(null)
   const [metadataError, setMetadataError] = useState('')
 
+  //const cidFromIpfs = (uri: string) => uri.replace('ipfs://', '')
+
   const ipfsToHttp = (uri: string) => {
   if (!uri) return ''
   if (uri.startsWith('ipfs://')) {
-    return `https://gateway.pinata.cloud/ipfs/${uri.replace('ipfs://', '')}`
+    const cid = uri.replace('ipfs://', '')
+    return `https://crimson-quickest-pinniped-725.mypinata.cloud/ipfs/${cid}`
   }
   return uri
 }
+
+  const fetchJsonFromIpfs = async <T,>(uri: string): Promise<T> => {
+    let lastError: unknown = null
+
+    for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
+      const url = ipfsToHttp(uri, i)
+      try {
+        const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error(`Gateway ${i + 1}: ${response.status}`)
+        }
+        return (await response.json()) as T
+      } catch (error) {
+        console.warn('IPFS gateway failed:', url, error)
+        lastError = error
+      }
+    }
+
+    throw lastError ?? new Error('No se pudo cargar desde ningún gateway IPFS')
+  }
 
   const { data: isRegistered, refetch: refetchRegistered } = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
@@ -153,12 +182,7 @@ function App() {
 
       if (!metadataUri) return
 
-      const response = await fetch(ipfsToHttp(metadataUri))
-      if (!response.ok) {
-        throw new Error(`No se pudo cargar metadata: ${response.status}`)
-      }
-
-      const json = (await response.json()) as NftMetadata
+      const json = await fetchJsonFromIpfs<NftMetadata>(metadataUri)
       setNftMetadata(json)
     } catch (error: any) {
       console.error(error)
