@@ -158,14 +158,39 @@ export default function DecryptBook({
         authContext,
       })
 
-      let keyBytes: Uint8Array =
-        decryptedKeyResult instanceof Uint8Array
-          ? decryptedKeyResult
-          : decryptedKeyResult?.decryptedData
+      console.log('Lit decryptedKeyResult:', decryptedKeyResult)
 
-      if (!keyBytes) throw new Error('Lit no devolvió decryptedData como Uint8Array')
+      let decryptedText = ''
 
-      const decoded = JSON.parse(new TextDecoder().decode(keyBytes))
+      if (decryptedKeyResult instanceof Uint8Array) {
+        decryptedText = new TextDecoder().decode(decryptedKeyResult)
+      } else if (decryptedKeyResult?.decryptedData instanceof Uint8Array) {
+        decryptedText = new TextDecoder().decode(decryptedKeyResult.decryptedData)
+      } else if (typeof decryptedKeyResult === 'string') {
+        decryptedText = decryptedKeyResult
+      } else if (typeof decryptedKeyResult?.decryptedData === 'string') {
+        decryptedText = decryptedKeyResult.decryptedData
+      }
+
+      console.log('Texto descifrado por Lit:', decryptedText)
+
+      if (!decryptedText || decryptedText === 'undefined') {
+        throw new Error(
+          'Lit no pudo descifrar la clave. Revisa que el bookId coincida, que hayas comprado el libro con esta wallet y que el contrato sea el mismo.'
+        )
+      }
+
+      let decoded: any
+
+      try {
+        decoded = JSON.parse(decryptedText)
+      } catch {
+        throw new Error(`Lit devolvió un texto no JSON: ${decryptedText}`)
+      }
+
+      if (!decoded?.key || !decoded?.iv) {
+        throw new Error('La clave descifrada no contiene key o iv')
+      }
 
       if (!decoded?.key || !decoded?.iv) {
         throw new Error('La clave descifrada no contiene key o iv')

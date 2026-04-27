@@ -12,7 +12,19 @@ if (!PRIVATE_KEY) {
   throw new Error('Falta PRIVATE_KEY en .env')
 }
 
-const BOOK_ID = '10'
+const [, , bookIdArg, encryptedKeyPath, encryptedPdfPath] = process.argv
+
+if (!bookIdArg || !encryptedKeyPath || !encryptedPdfPath) {
+  console.error(
+    'Uso: node decrypt.js <bookId> <key.encrypted.json> <book.encrypted.bin>'
+  )
+  console.error(
+    'Ejemplo: node decrypt.js 14 ./key.encrypted.json ./book.encrypted.bin'
+  )
+  process.exit(1)
+}
+
+const BOOK_ID = bookIdArg
 const CONTRACT = '0x2b31812EbcDa863dE6635A1Ad83F581212ED3b18'
 
 const evmContractConditions = [
@@ -27,27 +39,28 @@ const evmContractConditions = [
       stateMutability: 'view',
       inputs: [
         { name: 'user', type: 'address' },
-        { name: 'bookId', type: 'uint256' }
+        { name: 'bookId', type: 'uint256' },
       ],
-      outputs: [{ name: '', type: 'bool' }]
+      outputs: [{ name: '', type: 'bool' }],
     },
     returnValueTest: {
       key: '',
       comparator: '=',
-      value: 'true'
-    }
-  }
+      value: 'true',
+    },
+  },
 ]
 
 async function run() {
+  console.log('🌐 Lit connect...')
   const litClient = await createLitClient({ network: nagaDev })
 
   const authManager = createAuthManager({
     storage: storagePlugins.localStorageNode({
       appName: 'lit-simple',
       networkName: 'naga-dev',
-      storagePath: './.lit-cache'
-    })
+      storagePath: './.lit-cache',
+    }),
   })
 
   const account = privateKeyToAccount(PRIVATE_KEY)
@@ -58,31 +71,60 @@ async function run() {
       domain: 'localhost',
       statement: 'Decrypt book',
       expiration: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      resources: [['access-control-condition-decryption', '*']]
+      resources: [['access-control-condition-decryption', '*']],
     },
-    litClient
+    litClient,
   })
 
-  const keyJson = JSON.parse(fs.readFileSync('./key.encrypted.json', 'utf-8'))
+  console.log('📥 Leyendo key JSON...')
+  const keyJson = JSON.parse(fs.readFileSync(encryptedKeyPath, 'utf-8'))
 
+  console.log('🔓 Descifrando clave con Lit...')
   const decrypted = await litClient.decrypt({
-  data: keyJson,
-  evmContractConditions,
-  chain: 'sepolia',
-  authContext
-})
+    data: keyJson,
+    evmContractConditions,
+    chain: 'sepolia',
+    authContext,
+  })
 
-  const keyBytes =
-    decrypted instanceof Uint8Array
-      ? decrypted
-      : decrypted?.decryptedData instanceof Uint8Array
-      ? decrypted.decryptedData
-      : new Uint8Array(decrypted)
+  console.log('Lit decrypted result:', decrypted)
 
-  const decoded = JSON.parse(new TextDecoder().decode(keyBytes))
+  let decryptedText = ''
 
-  const encryptedPdf = fs.readFileSync('./book.encrypted.bin')
+  if (decrypted instanceof Uint8Array) {
+    decryptedText = new TextDecoder().decode(decrypted)
+  } else if (decrypted?.decryptedData instanceof Uint8Array) {
+    decryptedText = new TextDecoder().decode(decrypted.decryptedData)
+  } else if (typeof decrypted === 'string') {
+    decryptedText = decrypted
+  } else if (typeof decrypted?.decryptedData === 'string') {
+    decryptedText = decrypted.decryptedData
+  }
 
+  console.log('Texto descifrado por Lit:', decryptedText)
+
+  if (!decryptedText || decryptedText === 'undefined') {
+    throw new Error(
+      `Lit devolvió una clave inválida. Revisa que PRIVATE_KEY haya comprado el bookId ${BOOK_ID}.`
+    )
+  }
+
+  let decoded
+
+  try {
+    decoded = JSON.parse(decryptedText)
+  } catch {
+    throw new Error(`Lit devolvió texto no JSON: ${decryptedText}`)
+  }
+
+  if (!decoded.key || !decoded.iv) {
+    throw new Error('La clave descifrada no contiene key o iv')
+  }
+
+  console.log('📥 Leyendo PDF cifrado...')
+  const encryptedPdf = fs.readFileSync(encryptedPdfPath)
+
+  console.log('📖 Descifrando PDF...')
   const decipher = crypto.createDecipheriv(
     'aes-256-cbc',
     Buffer.from(decoded.key, 'base64'),
@@ -94,6 +136,7 @@ async function run() {
   fs.writeFileSync('./book.decrypted.pdf', pdf)
 
   console.log('✅ Decrypt OK')
+  console.log('Archivo creado: ./book.decrypted.pdf')
 }
 
 run().catch((err) => {
