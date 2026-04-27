@@ -84,33 +84,32 @@ app.post(
         key: aesKey.toString('base64'),
         iv: iv.toString('base64'),
       })
-
-      const encryptedKey = await litClient.encrypt({
-        data: new TextEncoder().encode(keyPayload),
+        const encryptedKey = await litClient.encrypt({
+        dataToEncrypt: new TextEncoder().encode(keyPayload),
         evmContractConditions: [
-          {
+            {
             contractAddress: MARKETPLACE_ADDRESS,
             chain: 'sepolia',
             functionName: 'hasUserBook',
             functionParams: [':userAddress', String(bookId)],
             functionAbi: {
-              name: 'hasUserBook',
-              type: 'function',
-              stateMutability: 'view',
-              inputs: [
+                name: 'hasUserBook',
+                type: 'function',
+                stateMutability: 'view',
+                inputs: [
                 { name: 'user', type: 'address' },
                 { name: 'bookId', type: 'uint256' },
-              ],
-              outputs: [{ name: '', type: 'bool' }],
+                ],
+                outputs: [{ name: '', type: 'bool' }],
             },
             returnValueTest: {
-              key: '',
-              comparator: '=',
-              value: 'true',
+                key: '',
+                comparator: '=',
+                value: 'true',
             },
-          },
+            },
         ],
-      })
+        })
 
       const encryptedFileUri = await uploadFileToPinata(
         encryptedPdf,

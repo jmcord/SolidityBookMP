@@ -12,6 +12,7 @@ const [, , filePath, bookIdArg, title, author, coverPath] = process.argv
 
 if (!filePath || !bookIdArg) {
   console.error('Uso: node encrypt.js <pdf> <bookId> "title" "author" [coverPath]')
+  console.error('Ejemplo: node encrypt.js ./book.pdf 16 "Libro Final" "chema" ./cover.png')
   process.exit(1)
 }
 
@@ -80,7 +81,9 @@ async function uploadFile(buffer, name) {
 
 async function uploadJSON(json, name = 'metadata.json') {
   const body = {
-    pinataMetadata: { name },
+    pinataMetadata: {
+      name,
+    },
     pinataContent: json,
   }
 
@@ -114,15 +117,15 @@ async function run() {
     iv: iv.toString('base64'),
   })
 
-  console.log('KEY PAYLOAD:', keyPayload)
+  console.log('KEY PAYLOAD ANTES DE CIFRAR:', keyPayload)
 
   console.log('🌐 Lit connect...')
   const litClient = await createLitClient({ network: nagaDev })
 
-  console.log('🔐 Cifrando clave con Lit...')
+  console.log('🔐 Cifrando clave AES con Lit...')
 
   const encryptedKeyResult = await litClient.encrypt({
-    dataToEncrypt: keyPayload,
+    dataToEncrypt: new TextEncoder().encode(keyPayload),
     evmContractConditions,
   })
 
