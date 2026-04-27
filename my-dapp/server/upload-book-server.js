@@ -84,8 +84,10 @@ app.post(
         key: aesKey.toString('base64'),
         iv: iv.toString('base64'),
       })
+      console.log('BOOK_ID:', bookId)
+      console.log('KEY PAYLOAD:', keyPayload)
         const encryptedKey = await litClient.encrypt({
-        dataToEncrypt: new TextEncoder().encode(keyPayload),
+        dataToEncrypt: keyPayload,
         evmContractConditions: [
             {
             contractAddress: MARKETPLACE_ADDRESS,
@@ -110,7 +112,7 @@ app.post(
             },
         ],
         })
-
+        console.log('ENCRYPTED KEY RESULT:', encryptedKey)
       const encryptedFileUri = await uploadFileToPinata(
         encryptedPdf,
         `book_${bookId}.encrypted.bin`
