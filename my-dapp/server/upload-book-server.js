@@ -11,7 +11,7 @@ import { nagaDev } from '@lit-protocol/networks'
 const app = express()
 const upload = multer({ storage: multer.memoryStorage() })
 
-const MARKETPLACE_ADDRESS = '0x2b31812EbcDa863dE6635A1Ad83F581212ED3b18'
+const MARKETPLACE_ADDRESS = '0x0E94c6fe8Fb16A494529ed9F334C60C1b508a2C5'
 
 if (!process.env.PINATA_JWT) {
   throw new Error('Falta PINATA_JWT en server/.env')
