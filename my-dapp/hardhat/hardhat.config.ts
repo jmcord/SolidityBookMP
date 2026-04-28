@@ -1,8 +1,15 @@
+import "@nomicfoundation/hardhat-ethers"
 import "dotenv/config"
 import { configVariable } from "hardhat/config"
 
 export default {
-  solidity: "0.8.24",
+  solidity: {
+    profiles: {
+      default: {
+        version: "0.8.20",
+      },
+    },
+  },
   networks: {
     amoy: {
       type: "http",

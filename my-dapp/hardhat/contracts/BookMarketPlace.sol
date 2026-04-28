@@ -1,34 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
-
-/*
-    Requiere OpenZeppelin:
-    npm install @openzeppelin/contracts
-
-    Flujo recomendado en Remix:
-    1. Deploy BookToken
-    2. Deploy BookNFT
-    3. Deploy BookMarketplace pasando:
-       - tokenAddress = dirección de BookToken
-       - nftAddress   = dirección de BookNFT
-    4. Transferir ownership de BookToken y BookNFT al marketplace
-    5. Registrar usuario
-    6. Crear libro
-    7. BuyTokens
-    8. Approve en BookToken al marketplace
-    9. BuyBook
-*/
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract BookToken is ERC20, Ownable {
     constructor(address initialOwner)
         ERC20("Book Marketplace Token", "BMT")
-        Ownable(initialOwner)
-    {}
+    {
+        transferOwnership(initialOwner);
+    }
 
     function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
@@ -40,8 +23,9 @@ contract BookNFT is ERC721URIStorage, Ownable {
 
     constructor(address initialOwner)
         ERC721("Book Ownership NFT", "BOOK")
-        Ownable(initialOwner)
-    {}
+    {
+        transferOwnership(initialOwner);
+    }
 
     function mintBookNFT(address to, string memory tokenURI_) external onlyOwner returns (uint256) {
         nextTokenId++;
@@ -97,12 +81,12 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
     event EthWithdrawn(address indexed owner, uint256 amount);
     event TokenRevenueWithdrawn(address indexed owner, uint256 amount);
 
-    constructor(address tokenAddress, address nftAddress) Ownable(msg.sender) {
+    constructor(address tokenAddress, address nftAddress) {
         require(tokenAddress != address(0), "Token address invalida");
         require(nftAddress != address(0), "NFT address invalida");
 
-        paymentToken = BookToken(tokenAddress); //ERC20 FT
-        bookNFT = BookNFT(nftAddress); //NFT ERC721
+        paymentToken = BookToken(tokenAddress);
+        bookNFT = BookNFT(nftAddress);
     }
 
     modifier onlyRegistered() {
@@ -190,10 +174,7 @@ contract BookMarketplace is Ownable, ReentrancyGuard {
         uint256 price = book.priceInTokens;
 
         require(paymentToken.balanceOf(msg.sender) >= price, "Saldo insuficiente de tokens");
-        require(
-            paymentToken.allowance(msg.sender, address(this)) >= price,
-            "Allowance insuficiente"
-        );
+        require(paymentToken.allowance(msg.sender, address(this)) >= price, "Allowance insuficiente");
 
         bool ok = paymentToken.transferFrom(msg.sender, address(this), price);
         require(ok, "Transferencia fallida de tokens");
