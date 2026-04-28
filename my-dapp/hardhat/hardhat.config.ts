@@ -1,21 +1,20 @@
-import "@nomicfoundation/hardhat-ethers"
-import "dotenv/config"
-import { configVariable } from "hardhat/config"
+require("@nomicfoundation/hardhat-toolbox")
+require("dotenv").config()
 
-export default {
-  solidity: {
-    profiles: {
-      default: {
-        version: "0.8.20",
-      },
-    },
-  },
+const PRIVATE_KEY = process.env.PRIVATE_KEY || ""
+
+module.exports = {
+  solidity: "0.8.20",
   networks: {
     amoy: {
-      type: "http",
       url: "https://rpc-amoy.polygon.technology/",
       chainId: 80002,
-      accounts: [configVariable("PRIVATE_KEY")],
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },
+sepolia: {
+  url: "https://ethereum-sepolia-rpc.publicnode.com",
+  chainId: 11155111,
+  accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+},
   },
 }

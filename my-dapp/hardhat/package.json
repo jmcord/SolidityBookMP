@@ -10,15 +10,13 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@nomicfoundation/hardhat-ethers": "^4.0.9",
-    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^6.1.2",
     "@types/node": "^22.19.17",
     "dotenv": "^17.4.2",
     "ethers": "^6.16.0",
-    "hardhat": "^3.4.2",
+    "hardhat": "^2.22.3",
     "typescript": "~5.8.0"
   },
-  "type": "module",
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.6"
   }
