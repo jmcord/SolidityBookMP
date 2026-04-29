@@ -28,7 +28,7 @@ if (!Number.isInteger(BOOK_ID) || BOOK_ID <= 0) {
   process.exit(1)
 }
 
-const MARKETPLACE_ADDRESS = '0x0E94c6fe8Fb16A494529ed9F334C60C1b508a2C5'
+const MARKETPLACE_ADDRESS = '0x0Cf7cA5a8d2557A9cA255997FD0722A97a482c80'
 
 const evmContractConditions = [
   {

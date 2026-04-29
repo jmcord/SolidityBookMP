@@ -25,7 +25,7 @@ if (!bookIdArg || !encryptedKeyPath || !encryptedPdfPath) {
 }
 
 const BOOK_ID = bookIdArg
-const CONTRACT = '0x2b31812EbcDa863dE6635A1Ad83F581212ED3b18'
+const CONTRACT = '0x0Cf7cA5a8d2557A9cA255997FD0722A97a482c80'
 
 const evmContractConditions = [
   {

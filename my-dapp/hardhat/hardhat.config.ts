@@ -17,7 +17,7 @@ sepolia: {
   accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
 },
 polygon: {
-  url: "https://polygon-rpc.com",
+  url: "https://polygon-bor-rpc.publicnode.com",
   chainId: 137,
   accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
 },
