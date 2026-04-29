@@ -1,13 +1,16 @@
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { WagmiProvider, createConfig, http } from 'wagmi'
-import { sepolia } from 'wagmi/chains'
+//import { sepolia } from 'wagmi/chains'
+import { polygon } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+
+
 const config = createConfig({
-  chains: [sepolia],
+  chains: [polygon],
   transports: {
-    [sepolia.id]: http(),
+    [polygon.id]: http(),
   },
 })
 
