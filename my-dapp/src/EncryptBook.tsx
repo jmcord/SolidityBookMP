@@ -35,7 +35,7 @@ export default function EncryptBook() {
       form.append('title', title.trim())
       form.append('author', author.trim())
 
-      const res = await fetch('http://localhost:4000/api/upload-book', {
+      const res = await fetch('https://soliditybookmp-1.onrender.com/api/upload-book', {//fetch('http://localhost:4000/api/upload-book', {
         method: 'POST',
         body: form,
       })
