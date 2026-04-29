@@ -159,12 +159,6 @@ app.post(
   }
 )
 
-//app.listen(4000, () => {
-//  console.log('✅ Upload server running on http://localhost:4000')
-//})
-
-const PORT = process.env.PORT || 4000
-
-app.listen(PORT, () => {
-  console.log(`✅ Upload server running on port ${PORT}`)
+app.listen(4000, () => {
+  console.log('✅ Upload server running on http://localhost:4000')
 })
