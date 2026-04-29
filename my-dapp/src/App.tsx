@@ -10,6 +10,7 @@ import {
   usePublicClient,
 } from 'wagmi'
 import { injected } from 'wagmi/connectors'
+import { polygon } from 'wagmi/chains'
 import { formatEther, parseEther } from 'viem'
 import {
   MARKETPLACE_ADDRESS,
@@ -119,6 +120,7 @@ function App() {
     abi: MARKETPLACE_ABI,
     functionName: 'isRegistered',
     args: address ? [address] : undefined,
+    chainId: polygon.id,
     query: { enabled: Boolean(address) },
   })
 
@@ -127,6 +129,7 @@ function App() {
     abi: MARKETPLACE_ABI,
     functionName: 'getTokenBalance',
     args: address ? [address] : undefined,
+    chainId: polygon.id,
     query: { enabled: Boolean(address) },
   })
 
@@ -137,6 +140,7 @@ function App() {
     args: address
       ? [address, MARKETPLACE_ADDRESS as `0x${string}`]
       : undefined,
+    chainId: polygon.id,
     query: { enabled: Boolean(address) },
   })
 
@@ -145,6 +149,7 @@ function App() {
     abi: MARKETPLACE_ABI,
     functionName: 'getBook',
     args: [currentBookId],
+    chainId: polygon.id,
     query: { enabled: true },
   })
 
@@ -153,6 +158,7 @@ function App() {
     abi: MARKETPLACE_ABI,
     functionName: 'hasUserBook',
     args: address ? [address, currentBookId] : undefined,
+    chainId: polygon.id,
     query: { enabled: Boolean(address) },
   })
 
@@ -160,6 +166,7 @@ function App() {
     address: MARKETPLACE_ADDRESS as `0x${string}`,
     abi: MARKETPLACE_ABI,
     functionName: 'owner',
+    chainId: polygon.id,
     query: { enabled: true },
   })
 
@@ -227,6 +234,7 @@ function App() {
         abi: MARKETPLACE_ABI,
         functionName: 'register',
         args: [username.trim()],
+        chainId: polygon.id,
       })
 
       setStatus('Esperando confirmación del registro...')
@@ -251,6 +259,7 @@ function App() {
         abi: MARKETPLACE_ABI,
         functionName: 'buyTokens',
         value: parseEther(ethToSpend || '0'),
+        chainId: polygon.id,
       })
 
       setStatus('Esperando confirmación de compra de tokens...')
@@ -288,6 +297,7 @@ function App() {
           parseEther(bookPrice || '0'),
           metadata,
         ],
+        chainId: polygon.id,
       })
 
       setStatus('Esperando confirmación de creación del libro...')
@@ -312,6 +322,7 @@ function App() {
         abi: TOKEN_ABI,
         functionName: 'approve',
         args: [MARKETPLACE_ADDRESS as `0x${string}`, price],
+        chainId: polygon.id,
       })
 
       setStatus('Esperando confirmación del approve...')
@@ -336,6 +347,7 @@ function App() {
         abi: MARKETPLACE_ABI,
         functionName: 'buyBook',
         args: [currentBookId],
+        chainId: polygon.id,
       })
 
       setStatus('Esperando confirmación de compra del libro...')
@@ -436,7 +448,7 @@ function App() {
           <input
             value={ethToSpend}
             onChange={(e) => setEthToSpend(e.target.value)}
-            placeholder="ETH"
+            placeholder="POL"
             style={{ padding: 8, marginRight: 8 }}
           />
 
@@ -589,7 +601,9 @@ function App() {
 
               <h3>Metadata NFT</h3>
 
-              {metadataError && <p style={{ color: 'red' }}>Error metadata: {metadataError}</p>}
+              {metadataError && (
+                <p style={{ color: 'red' }}>Error metadata: {metadataError}</p>
+              )}
 
               {nftMetadata && (
                 <>
