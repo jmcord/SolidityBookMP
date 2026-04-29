@@ -55,7 +55,14 @@ async function uploadJsonToPinata(json) {
   return `ipfs://${res.data.IpfsHash}`
 }
 
-app.use(cors({ origin: 'http://localhost:5173' }))
+//app.use(cors({ origin: 'http://localhost:5173' }))
+
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://solidity-book-mp.vercel.app'
+  ],
+}))
 
 app.post(
   '/api/upload-book',
