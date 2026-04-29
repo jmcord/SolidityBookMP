@@ -30,7 +30,8 @@ const CONTRACT = '0x2b31812EbcDa863dE6635A1Ad83F581212ED3b18'
 const evmContractConditions = [
   {
     contractAddress: CONTRACT,
-    chain: 'sepolia',
+    //chain: 'sepolia',
+    chain: 'polygon',
     functionName: 'hasUserBook',
     functionParams: [':userAddress', BOOK_ID],
     functionAbi: {

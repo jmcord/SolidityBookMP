@@ -98,7 +98,8 @@ app.post(
         evmContractConditions: [
             {
             contractAddress: MARKETPLACE_ADDRESS,
-            chain: 'sepolia',
+            //chain: 'sepolia',
+            chain: 'polygon',
             functionName: 'hasUserBook',
             functionParams: [':userAddress', String(bookId)],
             functionAbi: {

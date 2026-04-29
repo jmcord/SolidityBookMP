@@ -16,5 +16,10 @@ sepolia: {
   chainId: 11155111,
   accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
 },
+polygon: {
+  url: "https://polygon-rpc.com",
+  chainId: 137,
+  accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+},
   },
 }

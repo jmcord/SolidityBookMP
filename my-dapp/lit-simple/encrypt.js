@@ -33,7 +33,8 @@ const MARKETPLACE_ADDRESS = '0x0E94c6fe8Fb16A494529ed9F334C60C1b508a2C5'
 const evmContractConditions = [
   {
     contractAddress: MARKETPLACE_ADDRESS,
-    chain: 'sepolia',
+    //chain: 'sepolia',
+    chain: 'polygon',
     functionName: 'hasUserBook',
     functionParams: [':userAddress', BOOK_ID.toString()],
     functionAbi: {

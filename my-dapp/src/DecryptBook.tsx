@@ -134,7 +134,8 @@ export default function DecryptBook({
         evmContractConditions: [
           {
             contractAddress: MARKETPLACE_ADDRESS as `0x${string}`,
-            chain: 'sepolia',
+            //chain: 'sepolia',
+            chain: 'polygon',
             functionName: 'hasUserBook',
             functionParams: [':userAddress', bookId],
             functionAbi: {
